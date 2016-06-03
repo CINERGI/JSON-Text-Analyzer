@@ -20,3 +20,5 @@ study
 provide
 provided
 part
+has
+other

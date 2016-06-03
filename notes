@@ -1,0 +1,99 @@
+
+drop any chebi
+
+ {
+        "term": "has",
+        "span": [
+          "1064",
+          "1067"
+        ],
+        "ontID": "http://purl.obolibrary.org/obo/CHEBI_24431",
+        "facet": "Chemical"
+      },
+
+drop if three letters or less, and chebi
+      {
+        "term": "K.",
+        "span": [
+          "666",
+          "689"
+        ],
+        "ontID": "http://purl.obolibrary.org/obo/CHEBI_24431",
+        "facet": "Chemical"
+      },
+
+drop observation:
+      {
+        "term": "other",
+        "span": [
+          "983",
+          "1001"
+        ],
+        "ontID": "http://hydro10.sdsc.edu/cinergi_ontology/observation#Observation",
+        "facet": "Observation"
+      },
+
+????
+      {
+        "term": "is converted",
+        "span": [
+          "874",
+          "886"
+        ],
+        "ontID": "http://www.ebi.ac.uk/swo/SWO_0000001",
+        "facet": "Software"
+      },
+
+palm http://gcmdservices.gsfc.nasa.gov/kms/concept/a211773e-5959-40dc-8b33-f7d5880d57f3
+also, stemming issue.
+If label is all caps, and text is not, then do not consider it a match.
+(ponder sets with common acronym)
+      {
+        "term": "Palm",
+        "span": [
+          "679",
+          "730"
+        ],
+        "ontID": "http://sweet.jpl.nasa.gov/2.3/matrEquipment.owl#Equipment",
+        "facet": "Equipment"
+      },
+
+placename:
+      {
+        "term": "Shale",
+        "span": [
+          "0",
+          "66"
+        ],
+        "ontID": "http://hydro10.sdsc.edu/cinergi_ontology/CGI_Lithology#rock_material",
+        "facet": "Rock Material"
+      },
+      {
+        "term": "Hills",
+        "span": [
+          "0",
+          "66"
+        ],
+        "ontID": "http://purl.obolibrary.org/obo/ENVO_00000191",
+        "facet": "Physiographic Feature"
+      },
+
+Punctuation: Parentheses:
+     {
+        "term": "DSM)",
+        "span": [
+          "710",
+          "741"
+        ],
+        "ontID": "http://purl.obolibrary.org/obo/CHEBI_24431",
+        "facet": "Chemical"
+      },
+     {
+        "term": "DEM.",
+        "span": [
+          "883",
+          "887"
+        ],
+        "ontID": "http://hydro10.sdsc.edu/cinergi_ontology/cinergi.owl#resource",
+        "facet": "Resource Type"
+      },
