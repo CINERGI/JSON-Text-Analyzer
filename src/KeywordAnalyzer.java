@@ -1,17 +1,4 @@
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
-import java.io.UnsupportedEncodingException;
-import java.net.URL;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-
+import com.google.gson.Gson;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
@@ -19,14 +6,16 @@ import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.util.EntityUtils;
-import org.semanticweb.owlapi.model.IRI;
-import org.semanticweb.owlapi.model.OWLClass;
-import org.semanticweb.owlapi.model.OWLClassExpression;
-import org.semanticweb.owlapi.model.OWLDataFactory;
-import org.semanticweb.owlapi.model.OWLOntology;
-import org.semanticweb.owlapi.model.OWLOntologyManager;
+import org.semanticweb.owlapi.model.*;
 
-import com.google.gson.Gson;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
 
 public class KeywordAnalyzer {
 
@@ -106,7 +95,7 @@ public class KeywordAnalyzer {
 		}
 	}	
 	
-	public String readURLNew(String urlString) throws ClientProtocolException, IOException
+	public String readURL(String urlString) throws ClientProtocolException, IOException
 	{
 		
 		String jsonStr = null;
@@ -135,32 +124,6 @@ public class KeywordAnalyzer {
 		}
 		return jsonStr;
 	}
-		
-	public String readUrl(String urlString) throws IOException, InterruptedException {
-		counter++;
-	    BufferedReader reader = null;
-	    try {
-	    	if (counter % 20000 == 0)
-	    	{
-	    		counter = 0;
-	    		System.out.println("waiting for TIME_WAIT");
-	    		Thread.sleep(500);
-	    	}
-	        URL url = new URL(urlString);
-	        reader = new BufferedReader(new InputStreamReader(url.openStream()));
-	        StringBuffer buffer = new StringBuffer();
-	        int read;
-	        char[] chars = new char[1024];
-	        while ((read = reader.read(chars)) != -1)
-	            buffer.append(chars, 0, read); 
-	        //System.out.println(buffer.toString());	      	     
-	        
-	        return buffer.toString();
-	    } finally {
-	        if (reader != null)
-	            reader.close();
-	    }
-	}
 	
 	public Vocab vocabTerm(String input) throws UnsupportedEncodingException
 	{
@@ -178,7 +141,7 @@ public class KeywordAnalyzer {
 		}
 		//System.out.println(prefix+urlInput+suffix);
 		try {			
-			urlOut = readURLNew(prefix+urlInput+suffix);	
+			urlOut = readURL(prefix+urlInput+suffix);	
 			if (urlOut == null)
 				return null;
 		} catch (Exception e) {
@@ -258,7 +221,7 @@ public class KeywordAnalyzer {
 		String url = URLEncoder.encode(testInput, StandardCharsets.UTF_8.name());
 		String chunks = "http://tikki.neuinfo.org:9000/scigraph/lexical/chunks?text=";
 		//System.out.println(chunks+url);
-		String json = readURLNew(chunks + url);
+		String json = readURL(chunks + url);
 		
 	    ArrayList<Keyword> keywords = new ArrayList<Keyword>();
 	    
@@ -339,21 +302,21 @@ public class KeywordAnalyzer {
 	    }
 		return keywords;	    			 
 	}
-	
+	// takes a token (phrase and span), a reference of keywords to add to, and a 
 	private boolean processChunk(Tokens t, ArrayList<Keyword> keywords, HashSet<String> visited) throws Exception {
 		
+		if (visited.contains(t.getToken())) // this token has already been used
+		{
+			return false;
+		}
 		Vocab vocab = vocabTerm(t.getToken());
 		if (vocab == null)
-		{
+		{			
 			return false;
-		}
-		if (visited.contains(t.getToken()))
-		{
-			return false;
-		}
+		}		
 		visited.add(t.getToken());
 			
-		Concept toUse = vocab.concepts.get(0);
+		Concept toUse = vocab.concepts.get(0); // TODO find the concept that matched the token
 		if (vocab.concepts.size() > 1) 
 		{ // change this later to make use of exceptionMap TODO
 			for (int i = 0; i < vocab.concepts.size(); i++)
@@ -372,16 +335,39 @@ public class KeywordAnalyzer {
 	
 		HashSet<IRI> visitedIRI = new HashSet<IRI>();
 		
-		IRI facetIRI = getFacetIRI(df.getOWLClass(IRI.create(toUse.uri)), visitedIRI);
+		
+		
+		OWLClass cls = df.getOWLClass(IRI.create(toUse.uri));	
+		if (toUse.uri.contains("CHEBI") && t.getToken().length() <= 3) // filter chemical entities that cause errors
+		{
+			return false;
+		}
+		IRI facetIRI = getFacetIRI(cls, visitedIRI);
 		if (facetIRI == null)
 		{	
 			//System.err.println("no facet for: " + toUse.uri);
 			return false;
 		}
+		// if equipement
+		if (facetIRI.toString().contentEquals("http://sweet.jpl.nasa.gov/2.3/matrEquipment.owl#Equipment")){
+			boolean foundMatch = false;
+			for (String lbl:toUse.labels
+				 ) {
+				if (lbl.contentEquals(t.getToken())){
+					foundMatch = true;
+				}
+			}
+			if (! foundMatch) return false;
+		}
+
+		if (facetIRI.toString().contentEquals("http://hydro10.sdsc.edu/cinergi_ontology/observation#Observation")){
+				return false;
+		}
+
 		keywords.add(new Keyword(t.getToken(), new String[] { t.getStart(), t.getEnd() }, facetIRI.toString(), 
 					OWLFunctions.getLabel(df.getOWLClass(facetIRI), manager, df)));
 		
-		return false;
+		return true; // 
 		
 	}
 
@@ -389,7 +375,7 @@ public class KeywordAnalyzer {
 	{
 		String prefix = "http://tikki.neuinfo.org:9000/scigraph/lexical/pos?text=";
 		String urlInput = URLEncoder.encode(input, StandardCharsets.UTF_8.name());
-		String urlOut = readURLNew(prefix+urlInput);
+		String urlOut = readURL(prefix+urlInput);
 		
 		POS[] p = gson.fromJson(urlOut, POS[].class);
 		return p;
